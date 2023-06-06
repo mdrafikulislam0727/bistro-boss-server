@@ -211,7 +211,7 @@ async function run() {
       res.send({insertResult, deleteResult});
     })
 
-    app.get('/admin-stats', async(req, res)=>{
+    app.get('/admin-stats',verifyJWT, verifyAdmin, async(req, res)=>{
       const users =await usersCollection.estimatedDocumentCount();
       const products = await menuCollection.estimatedDocumentCount();
       const orders =await paymentCollection.estimatedDocumentCount();
@@ -228,12 +228,23 @@ async function run() {
       })
     })
     // -------------------
-    app.get('/order-stats', async(req, res) =>{
+    app.get('/order-stats',verifyJWT,verifyAdmin, async(req, res) =>{
       const pipeline = [
+        {
+          $addFields: {
+            menuItemsObjectIds: {
+              $map: {
+                input: '$menuItems',
+                as: 'itemId',
+                in: { $toObjectId: '$$itemId' }
+              }
+            }
+          }
+        },
         {
           $lookup: {
             from: 'menu',
-            localField: 'menuItems',
+            localField: 'menuItemsObjectIds',
             foreignField: '_id',
             as: 'menuItemsData'
           }
